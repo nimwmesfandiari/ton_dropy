@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TON Dropy | پلتفرم خرید و فروش</title>
+    
+    <!-- اسکریپت حیاتی برای اتصال به تلگرام -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
+    <style>
+        body { font-family: 'Vazirmatn', sans-serif; background-color: #f3f4f6; -webkit-tap-highlight-color: transparent; }
+        .sidebar-active { background-color: #2563eb; color: white; }
+        .glass-panel { background: white; border-radius: 1rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3b82f6; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; display: inline-block; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden text-gray-800">
+
+    <!-- Sidebar (برای موبایل مخفی است) -->
+    <aside class="w-64 bg-white border-l border-gray-200 hidden md:flex flex-col">
+        <div class="p-6 flex items-center gap-2">
+            <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold">V</div>
+            <h1 class="font-bold text-xl">TON Dropy</h1>
+        </div>
+        <nav class="flex-1 px-4 space-y-2">
+            <a href="#" class="sidebar-active flex items-center gap-3 px-4 py-3 rounded-lg"><span>🏠</span> داشبورد</a>
+            <a href="#" class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-50"><span>👛</span> کیف پول</a>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto p-4 md:p-6 pb-20">
+        
+        <!-- Header -->
+        <header class="flex justify-between items-center mb-6">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold shadow-md">V</div>
+                <div>
+                    <h2 class="font-bold text-sm" id="user-name">در حال بارگذاری...</h2>
+                    <p class="text-xs text-gray-500">خوش آمدید</p>
+                </div>
+            </div>
+        </header>
+
+        <!-- Banner -->
+        <div class="bg-gradient-to-l from-blue-900 to-blue-600 rounded-2xl p-6 text-white mb-6 relative overflow-hidden shadow-lg">
+            <h2 class="text-2xl font-bold mb-2">TON Dropy</h2>
+            <p class="text-blue-100 mb-4 text-sm">پلتفرم حرفه‌ای خرید و فروش ارز دیجیتال</p>
+            <button onclick="buyTON()" class="bg-white text-blue-600 py-2 px-6 rounded-lg font-bold transition text-sm shadow-md" id="buy-btn">
+                خرید تستی TON
+            </button>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Chart & Stats -->
+            <div class="lg:col-span-2 space-y-6">
+                <div class="glass-panel p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold">TON / USDT</h3>
+                    </div>
+                    <div class="text-3xl font-bold mb-1">$5.21 <span class="text-sm text-green-500 font-normal">+2.36%</span></div>
+                    <!-- Chart Placeholder -->
+                    <div class="h-48 bg-gradient-to-t from-blue-50 to-transparent border-b-2 border-blue-500 relative mt-4">
+                        <svg class="w-full h-full" preserveAspectRatio="none" viewBox="0 0 100 100">
+                            <path d="M0,80 Q20,70 40,50 T80,30 L100,20" fill="none" stroke="#3b82f6" stroke-width="2" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel -->
+            <div class="space-y-6">
+                <!-- Wallet Balance -->
+                <div class="glass-panel p-6 text-center">
+                    <p class="text-gray-500 text-sm mb-1">موجودی کیف پول</p>
+                    <h3 class="text-3xl font-bold text-gray-800 mb-4" id="user-balance">
+                        <span class="loader"></span>
+                    </h3>
+                    <div class="flex gap-2">
+                        <button class="flex-1 bg-gray-50 hover:bg-gray-100 text-center py-2 rounded-lg text-sm transition">واریز</button>
+                        <button class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-center py-2 rounded-lg text-sm transition">برداشت</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- اسکریپت‌های ارتباط با بک‌اند -->
+    <script>
+        // ⚠️ این آدرس را با آدرس Worker خودتان جایگزین کنید ⚠️
+        const API_BASE_URL = 'https://ton-dropy.nimwmesfandiarii.workers.dev'; 
+        
+        let currentUserId = null;
+        const tg = window.Telegram.WebApp;
+
+        // 1. آماده‌سازی محیط تلگرام
+        if (tg) {
+            tg.ready();
+            tg.expand();
+            tg.setHeaderColor('#ffffff');
+        }
+
+        // 2. احراز هویت کاربر هنگام باز شدن صفحه
+        async function authenticateUser() {
+            // اگر کاربر داخل تلگرام است
+            if (tg && tg.initData) {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/auth`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ initData: tg.initData })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        currentUserId = data.user.id;
+                        document.getElementById('user-name').innerText = data.user.username;
+                        document.getElementById('user-balance').innerHTML = `${data.user.balance_ton.toFixed(2)} <span class="text-sm text-gray-400">TON</span>`;
+                    } else {
+                        document.getElementById('user-name').innerText = "خطا در احراز هویت";
+                    }
+                } catch (error) {
+                    console.error("Auth Error:", error);
+                    document.getElementById('user-name').innerText = "خطای شبکه";
+                }
+            } else {
+                // این بخش فقط برای تست در مرورگر دسکتاپ است (چون تلگرام وجود ندارد)
+                document.getElementById('user-name').innerText = "کاربر تست (مرورگر)";
+                document.getElementById('user-balance').innerHTML = `0.00 <span class="text-sm text-gray-400">TON</span>`;
+                console.warn("شما در محیط تلگرام نیستید. احراز هویت واقعی انجام نشد.");
+            }
+        }
+
+        // 3. تابع ثبت سفارش تستی
+        async function buyTON() {
+            if (!currentUserId) {
+                alert("لطفاً ابتدا از داخل تلگرام وارد شوید.");
+                return;
+            }
+
+            const btn = document.getElementById('buy-btn');
+            btn.innerText = "در حال ثبت...";
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/order`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        userId: currentUserId, 
+                        amountTon: 10, 
+                        amountIrt: 3000000 
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    tg.showAlert("سفارش شما با موفقیت ثبت شد و در انتظار تایید ادمین است.");
+                } else {
+                    tg.showAlert("خطا در ثبت سفارش");
+                }
+            } catch (error) {
+                console.error(error);
+                alert("خطای شبکه در ثبت سفارش");
+            } finally {
+                btn.innerText = "خرید تستی TON";
+                btn.disabled = false;
+            }
+        }
+
+        // اجرای اولیه
+        document.addEventListener('DOMContentLoaded', authenticateUser);
+    </script>
+</body>
+</html>
